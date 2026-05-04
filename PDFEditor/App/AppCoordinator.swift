@@ -16,10 +16,9 @@ enum AppSheet: Identifiable {
     }
 }
 
-@Observable
-final class AppCoordinator {
-    var navigationPath = NavigationPath()
-    var activeSheet: AppSheet?
+final class AppCoordinator: ObservableObject {
+    @Published var navigationPath = NavigationPath()
+    @Published var activeSheet: AppSheet?
 
     func openDocumentPicker() {
         activeSheet = .documentPicker

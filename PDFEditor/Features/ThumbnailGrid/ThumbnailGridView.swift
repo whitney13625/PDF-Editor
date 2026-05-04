@@ -1,65 +1,66 @@
 import SwiftUI
 
 struct ThumbnailGridView: View {
-    @Environment(AppCoordinator.self) private var coordinator
+    @EnvironmentObject private var coordinator: AppCoordinator
     @EnvironmentObject private var env: AppEnvironment
-    @State private var viewModel: ThumbnailGridViewModel?
+    @StateObject private var viewModel: ThumbnailGridViewModel
 
     let documentURL: URL
 
     private let columns = [GridItem(.adaptive(minimum: 120, maximum: 180), spacing: 12)]
 
-    var body: some View {
-        Group {
-            if let vm = viewModel {
-                content(vm: vm)
-            } else {
-                ProgressView()
-            }
-        }
-        .task {
-            let vm = ThumbnailGridViewModel(
-                processor: env.pdfProcessor,
-                docManager: env.documentManager,
-                history: env.commandHistory
-            )
-            viewModel = vm
-            await vm.loadDocument(url: documentURL)
-        }
+    init(documentURL: URL) {
+        self.documentURL = documentURL
+        // StateObject init requires wrappedValue at init time;
+        // actual dependencies injected via onAppear after env is available.
+        _viewModel = StateObject(wrappedValue: ThumbnailGridViewModel(
+            processor: PDFProcessingActor(),
+            docManager: PDFDocumentManager(),
+            history: CommandHistory()
+        ))
     }
 
-    @ViewBuilder
-    private func content(vm: ThumbnailGridViewModel) -> some View {
-        ScrollView {
-            LazyVGrid(columns: columns, spacing: 16) {
-                ForEach(vm.pages) { page in
-                    ThumbnailCell(page: page)
-                        .contextMenu {
-                            PageContextMenu(vm: vm, pageIndex: page.pageIndex)
-                        }
-                }
-            }
-            .padding()
-        }
-        .navigationTitle("Pages (\(vm.pages.count))")
-        .toolbar {
-            ToolbarItemGroup(placement: .navigationBarTrailing) {
-                Button("Merge") { coordinator.openMerge() }
-                Button("Split") { coordinator.openSplit() }
-                Button("Export") {
-                    Task {
-                        if let doc = vm.currentDocument(),
-                           let url = try? env.documentManager.writeToTemp(doc) {
-                            coordinator.openExport(url: url)
+    var body: some View {
+        content
+            .navigationTitle("Pages (\(viewModel.pages.count))")
+            .toolbar {
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    Button("Merge") { coordinator.openMerge() }
+                    Button("Split") { coordinator.openSplit() }
+                    Button("Export") {
+                        Task {
+                            if let doc = viewModel.currentDocument(),
+                               let url = try? env.documentManager.writeToTemp(doc) {
+                                coordinator.openExport(url: url)
+                            }
                         }
                     }
                 }
+                ToolbarItemGroup(placement: .navigationBarLeading) {
+                    Button("Undo") { env.commandHistory.undo() }
+                        .disabled(!env.commandHistory.canUndo)
+                    Button("Redo") { env.commandHistory.redo() }
+                        .disabled(!env.commandHistory.canRedo)
+                }
             }
-            ToolbarItemGroup(placement: .navigationBarLeading) {
-                Button("Undo") { env.commandHistory.undo() }
-                    .disabled(!env.commandHistory.canUndo)
-                Button("Redo") { env.commandHistory.redo() }
-                    .disabled(!env.commandHistory.canRedo)
+            .task { await viewModel.loadDocument(url: documentURL) }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if viewModel.isLoading {
+            ProgressView("Loading…")
+        } else {
+            ScrollView {
+                LazyVGrid(columns: columns, spacing: 16) {
+                    ForEach(viewModel.pages) { page in
+                        ThumbnailCell(page: page)
+                            .contextMenu {
+                                PageContextMenu(vm: viewModel, pageIndex: page.pageIndex)
+                            }
+                    }
+                }
+                .padding()
             }
         }
     }

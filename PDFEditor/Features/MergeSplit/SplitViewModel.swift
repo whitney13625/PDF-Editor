@@ -1,12 +1,11 @@
 import PDFKit
 import Foundation
 
-@Observable
-final class SplitViewModel {
-    var splitPoint: Int = 1
-    var isProcessing = false
-    var resultURLs: [URL] = []
-    var error: String?
+final class SplitViewModel: ObservableObject {
+    @Published var splitPoint: Int = 1
+    @Published var isProcessing = false
+    @Published var resultURLs: [URL] = []
+    @Published var error: String?
 
     private let processor: PDFProcessingActor
     private let docManager: PDFDocumentManager

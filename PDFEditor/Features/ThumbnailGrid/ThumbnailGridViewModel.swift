@@ -1,11 +1,10 @@
 import PDFKit
 import SwiftUI
 
-@Observable
-final class ThumbnailGridViewModel {
-    var pages: [PDFPageModel] = []
-    var isLoading = false
-    var error: String?
+final class ThumbnailGridViewModel: ObservableObject {
+    @Published var pages: [PDFPageModel] = []
+    @Published var isLoading = false
+    @Published var error: String?
 
     private var document: PDFDocument?
     private let processor: PDFProcessingActor

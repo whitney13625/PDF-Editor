@@ -2,13 +2,13 @@ import SwiftUI
 
 @main
 struct PDFEditorApp: App {
-    @State private var coordinator = AppCoordinator()
-    private let environment = AppEnvironment()
+    @StateObject private var coordinator = AppCoordinator()
+    @StateObject private var environment = AppEnvironment()
 
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environment(coordinator)
+                .environmentObject(coordinator)
                 .environmentObject(environment)
         }
     }

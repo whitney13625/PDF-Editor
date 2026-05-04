@@ -1,12 +1,11 @@
 import PDFKit
 import Foundation
 
-@Observable
-final class MergeViewModel {
-    var selectedURLs: [URL] = []
-    var isProcessing = false
-    var resultURL: URL?
-    var error: String?
+final class MergeViewModel: ObservableObject {
+    @Published var selectedURLs: [URL] = []
+    @Published var isProcessing = false
+    @Published var resultURL: URL?
+    @Published var error: String?
 
     private let processor: PDFProcessingActor
     private let docManager: PDFDocumentManager
