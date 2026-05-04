@@ -7,8 +7,17 @@ final class CommandHistory: ObservableObject {
     private var undoStack: [Command] = []
     private var redoStack: [Command] = []
 
+    // Execute a command and record it for undo.
     func execute(_ command: Command) {
         command.execute()
+        undoStack.append(command)
+        redoStack.removeAll()
+        updateState()
+    }
+
+    // Record a command that has already been applied (e.g. drag-to-reorder)
+    // without re-executing it.
+    func register(_ command: Command) {
         undoStack.append(command)
         redoStack.removeAll()
         updateState()

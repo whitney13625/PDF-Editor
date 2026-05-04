@@ -1,9 +1,15 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ThumbnailGridView: View {
     @EnvironmentObject private var coordinator: AppCoordinator
     @EnvironmentObject private var env: AppEnvironment
     @StateObject private var viewModel: ThumbnailGridViewModel
+
+    @State private var draggingID: UUID?
+    @State private var dragStartIndex: Int?
+
+    @State private var documentURL: URL
 
     private let columns = [GridItem(.adaptive(minimum: 120, maximum: 180), spacing: 12)]
 
@@ -13,10 +19,8 @@ struct ThumbnailGridView: View {
             docManager: docManager,
             history: history
         ))
-        self._documentURL = State(initialValue: documentURL)
+        _documentURL = State(initialValue: documentURL)
     }
-
-    @State private var documentURL: URL
 
     var body: some View {
         content
@@ -32,6 +36,8 @@ struct ThumbnailGridView: View {
             }
             .task { await viewModel.loadDocument(url: documentURL) }
     }
+
+    // MARK: - Content
 
     @ViewBuilder
     private var content: some View {
@@ -50,9 +56,26 @@ struct ThumbnailGridView: View {
                 LazyVGrid(columns: columns, spacing: 16) {
                     ForEach(viewModel.pages) { page in
                         ThumbnailCell(page: page)
+                            .opacity(draggingID == page.id ? 0.4 : 1.0)
+                            .scaleEffect(draggingID == page.id ? 0.93 : 1.0)
+                            .animation(.easeInOut(duration: 0.15), value: draggingID)
                             .contextMenu {
                                 PageContextMenu(vm: viewModel, pageIndex: page.pageIndex)
                             }
+                            .onDrag {
+                                dragStartIndex = viewModel.pages.firstIndex(where: { $0.id == page.id })
+                                draggingID = page.id
+                                return NSItemProvider(object: page.id.uuidString as NSString)
+                            }
+                            .onDrop(
+                                of: [UTType.plainText],
+                                delegate: PageDropDelegate(
+                                    targetPage: page,
+                                    viewModel: viewModel,
+                                    draggingID: $draggingID,
+                                    dragStartIndex: $dragStartIndex
+                                )
+                            )
                     }
                 }
                 .padding()
@@ -60,11 +83,14 @@ struct ThumbnailGridView: View {
         }
     }
 
+    // MARK: - Toolbar
+
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
         ToolbarItemGroup(placement: .navigationBarLeading) {
             Button {
                 env.commandHistory.undo()
+                Task { await viewModel.reloadPages() }
             } label: {
                 Image(systemName: "arrow.uturn.backward")
             }
@@ -72,6 +98,7 @@ struct ThumbnailGridView: View {
 
             Button {
                 env.commandHistory.redo()
+                Task { await viewModel.reloadPages() }
             } label: {
                 Image(systemName: "arrow.uturn.forward")
             }
@@ -92,5 +119,43 @@ struct ThumbnailGridView: View {
                 Image(systemName: "square.and.arrow.up")
             }
         }
+    }
+}
+
+// MARK: - PageDropDelegate
+
+private struct PageDropDelegate: DropDelegate {
+    let targetPage: PDFPageModel
+    let viewModel: ThumbnailGridViewModel
+    @Binding var draggingID: UUID?
+    @Binding var dragStartIndex: Int?
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func dropEntered(info: DropInfo) {
+        guard
+            let id = draggingID,
+            id != targetPage.id,
+            let fromIndex = viewModel.pages.firstIndex(where: { $0.id == id }),
+            let toIndex = viewModel.pages.firstIndex(where: { $0.id == targetPage.id })
+        else { return }
+
+        withAnimation(.easeInOut(duration: 0.2)) {
+            viewModel.movePagePreview(
+                from: IndexSet(integer: fromIndex),
+                to: toIndex > fromIndex ? toIndex + 1 : toIndex
+            )
+        }
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        if let startIndex = dragStartIndex, let id = draggingID {
+            viewModel.commitDrag(startIndex: startIndex, draggingID: id)
+        }
+        draggingID = nil
+        dragStartIndex = nil
+        return true
     }
 }
