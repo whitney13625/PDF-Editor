@@ -8,6 +8,7 @@ struct ThumbnailGridView: View {
 
     @State private var draggingID: UUID?
     @State private var dragStartIndex: Int?
+    @State private var exportError: String?
 
     @State private var documentURL: URL
 
@@ -33,6 +34,14 @@ struct ThumbnailGridView: View {
                 Button("OK", role: .cancel) { viewModel.errorMessage = nil }
             } message: {
                 Text(viewModel.errorMessage ?? "")
+            }
+            .alert("Export Failed", isPresented: Binding(
+                get: { exportError != nil },
+                set: { if !$0 { exportError = nil } }
+            )) {
+                Button("OK", role: .cancel) { exportError = nil }
+            } message: {
+                Text(exportError ?? "")
             }
             .task { await viewModel.loadDocument(url: documentURL) }
     }
@@ -109,11 +118,14 @@ struct ThumbnailGridView: View {
             Button("Merge") { coordinator.openMerge() }
             Button("Split") {
                 Task {
-                    if let doc = viewModel.currentDocument(),
-                       let url = try? env.documentManager.writeToTemp(
-                           doc, name: "\(viewModel.documentName)_split_source"
-                       ) {
+                    guard let doc = viewModel.currentDocument() else { return }
+                    do {
+                        let url = try env.documentManager.writeToTemp(
+                            doc, name: "\(viewModel.documentName)_split_source"
+                        )
                         coordinator.openSplit(url: url)
+                    } catch {
+                        exportError = error.localizedDescription
                     }
                 }
             }
@@ -144,19 +156,27 @@ extension ThumbnailGridView {
     }
 
     private func shareDocument() async {
-        guard let doc = viewModel.currentDocument(),
-              let url = try? env.documentManager.writeToTemp(
-                  doc, name: "\(viewModel.documentName)_edited"
-              ) else { return }
-        coordinator.openExport(url: url)
+        guard let doc = viewModel.currentDocument() else { return }
+        do {
+            let url = try env.documentManager.writeToTemp(
+                doc, name: "\(viewModel.documentName)_edited"
+            )
+            coordinator.openExport(url: url)
+        } catch {
+            exportError = error.localizedDescription
+        }
     }
 
     private func saveToFiles() async {
-        guard let doc = viewModel.currentDocument(),
-              let url = try? env.documentManager.writeToTemp(
-                  doc, name: "\(viewModel.documentName)_edited"
-              ) else { return }
-        coordinator.openSaveToFiles(url: url)
+        guard let doc = viewModel.currentDocument() else { return }
+        do {
+            let url = try env.documentManager.writeToTemp(
+                doc, name: "\(viewModel.documentName)_edited"
+            )
+            coordinator.openSaveToFiles(url: url)
+        } catch {
+            exportError = error.localizedDescription
+        }
     }
 }
 

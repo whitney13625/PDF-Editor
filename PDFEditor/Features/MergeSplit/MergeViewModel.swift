@@ -25,10 +25,18 @@ final class MergeViewModel: ObservableObject {
 
     // Copies each picked URL to temp, reads page count, appends to list.
     func addDocuments(_ urls: [URL]) {
+        var failedNames: [String] = []
         for url in urls {
-            guard let tempURL = try? docManager.copyToTemp(url: url) else { continue }
-            let count = docManager.pageCount(at: tempURL)
-            items.append(MergeItem(name: url.lastPathComponent, url: tempURL, pageCount: count))
+            do {
+                let tempURL = try docManager.copyToTemp(url: url)
+                let count = docManager.pageCount(at: tempURL)
+                items.append(MergeItem(name: url.lastPathComponent, url: tempURL, pageCount: count))
+            } catch {
+                failedNames.append(url.lastPathComponent)
+            }
+        }
+        if !failedNames.isEmpty {
+            errorMessage = "Could not import: \(failedNames.joined(separator: ", "))"
         }
     }
 

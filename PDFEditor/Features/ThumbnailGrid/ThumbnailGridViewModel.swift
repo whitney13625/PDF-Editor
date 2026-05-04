@@ -9,6 +9,8 @@ final class ThumbnailGridViewModel: ObservableObject {
 
     private(set) var documentName: String = "document"
     private var document: PDFDocument?
+    private var renderTask: Task<Void, Never>?
+
     private let processor: PDFProcessingActor
     private let docManager: PDFDocumentManager
     private let history: CommandHistory
@@ -24,25 +26,42 @@ final class ThumbnailGridViewModel: ObservableObject {
     // MARK: - Load
 
     func loadDocument(url: URL) async {
+        renderTask?.cancel()
         isLoading = true
-        defer { isLoading = false }
+
         do {
             let doc = try docManager.openDocument(url: url)
-            let thumbnails = await processor.renderThumbnails(for: doc, size: thumbnailSize)
             documentName = url.deletingPathExtension().lastPathComponent
             document = doc
-            pages = thumbnails
+
+            // Show placeholder grid immediately so the user sees structure right away
+            pages = (0..<doc.pageCount).map { PDFPageModel(pageIndex: $0) }
+            isLoading = false
+
+            // Render thumbnails one by one in the background
+            renderTask = Task { [weak self] in
+                await self?.renderProgressively(doc: doc)
+            }
         } catch {
             errorMessage = error.localizedDescription
+            isLoading = false
         }
     }
 
-    // Re-renders all pages from the current PDFDocument state.
-    // Call this after undo/redo so the view reflects the document's new state.
+    // Re-render from current PDFDocument state after undo/redo.
+    // Shows page structure immediately, fills thumbnails progressively.
     func reloadPages() async {
         guard let doc = document else { return }
-        let thumbnails = await processor.renderThumbnails(for: doc, size: thumbnailSize)
-        pages = thumbnails
+        renderTask?.cancel()
+
+        pages = (0..<doc.pageCount).map { i in
+            let rotation = doc.page(at: i).map { Int($0.rotation) } ?? 0
+            return PDFPageModel(pageIndex: i, rotation: rotation)
+        }
+
+        renderTask = Task { [weak self] in
+            await self?.renderProgressively(doc: doc)
+        }
     }
 
     // MARK: - Page operations (recorded in history)
@@ -74,30 +93,25 @@ final class ThumbnailGridViewModel: ObservableObject {
             rotation: (pages[index].rotation + degrees) % 360,
             thumbnail: pages[index].thumbnail
         )
-        Task { await refreshThumbnail(at: index, page: page) }
+        Task { await refreshSingleThumbnail(at: index, page: page) }
     }
 
     // MARK: - Drag-to-reorder helpers
 
-    // Visual-only move used during drag. Updates both the view model and the
-    // underlying PDFDocument so state stays in sync, but does NOT push to history.
-    // One consolidated ReorderPageCommand is registered via commitDrag() on drop.
     func movePagePreview(from source: IndexSet, to destination: Int) {
         guard let fromIndex = source.first, let doc = document else { return }
         let command = ReorderPageCommand(document: doc, fromIndex: fromIndex, toIndex: destination)
-        command.execute()  // sync PDFDocument
+        command.execute()
         pages.move(fromOffsets: source, toOffset: destination)
     }
 
-    // Called when a drag completes. Records a single undo step covering the full
-    // movement from startIndex to the element's current position.
     func commitDrag(startIndex: Int, draggingID: UUID) {
         guard let doc = document,
               let endIndex = pages.firstIndex(where: { $0.id == draggingID }),
               startIndex != endIndex else { return }
         let swiftUISlot = endIndex > startIndex ? endIndex + 1 : endIndex
         let command = ReorderPageCommand(document: doc, fromIndex: startIndex, toIndex: swiftUISlot)
-        history.register(command)  // already applied, just record for undo
+        history.register(command)
     }
 
     // MARK: - Accessors
@@ -106,10 +120,20 @@ final class ThumbnailGridViewModel: ObservableObject {
 
     // MARK: - Private
 
-    private func refreshThumbnail(at index: Int, page: PDFPage) async {
+    private func renderProgressively(doc: PDFDocument) async {
+        for i in 0..<doc.pageCount {
+            guard !Task.isCancelled else { break }
+            guard let page = doc.page(at: i), i < pages.count else { break }
+            let image = await processor.renderThumbnail(for: page, size: thumbnailSize)
+            guard !Task.isCancelled, i < pages.count else { break }
+            pages[i].thumbnail = image
+        }
+    }
+
+    private func refreshSingleThumbnail(at index: Int, page: PDFPage) async {
         let thumb = await processor.renderThumbnail(for: page, size: thumbnailSize)
         guard index < pages.count else { return }
-        pages[index] = PDFPageModel(pageIndex: index, rotation: pages[index].rotation, thumbnail: thumb)
+        pages[index].thumbnail = thumb
     }
 
     private func reindexPages() {
