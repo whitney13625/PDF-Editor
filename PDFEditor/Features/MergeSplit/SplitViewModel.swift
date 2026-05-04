@@ -1,38 +1,54 @@
 import PDFKit
 import Foundation
 
+@MainActor
 final class SplitViewModel: ObservableObject {
     @Published var splitPoint: Int = 1
     @Published var isProcessing = false
     @Published var resultURLs: [URL] = []
-    @Published var error: String?
+    @Published var errorMessage: String?
 
+    let documentName: String
+    let pageCount: Int
+
+    private let documentURL: URL
     private let processor: PDFProcessingActor
     private let docManager: PDFDocumentManager
 
-    init(processor: PDFProcessingActor, docManager: PDFDocumentManager) {
+    init(documentURL: URL, processor: PDFProcessingActor, docManager: PDFDocumentManager) {
+        self.documentURL = documentURL
         self.processor = processor
         self.docManager = docManager
+        self.documentName = documentURL.lastPathComponent
+        self.pageCount = PDFDocument(url: documentURL)?.pageCount ?? 0
+        self.splitPoint = max(1, (self.pageCount) / 2)
     }
 
-    func split(document: PDFDocument) async {
-        let total = document.pageCount
-        guard splitPoint > 0 && splitPoint < total else {
-            error = "Split point must be between 1 and \(total - 1)"
+    var part1Count: Int { splitPoint }
+    var part2Count: Int { pageCount - splitPoint }
+    var canSplit: Bool  { pageCount >= 2 }
+    var splitRange: ClosedRange<Double> { 1...Double(max(pageCount - 1, 1)) }
+
+    func split() async {
+        guard canSplit, splitPoint > 0, splitPoint < pageCount else {
+            errorMessage = "Cannot split: need at least 2 pages"
             return
         }
-
         isProcessing = true
         defer { isProcessing = false }
 
         do {
-            let ranges: [Range<Int>] = [0..<splitPoint, splitPoint..<total]
-            let parts = try await processor.split(document: document, ranges: ranges)
-            resultURLs = try parts.enumerated().map { i, doc in
-                try docManager.writeToTemp(doc, name: "split_part\(i + 1)")
+            guard let doc = PDFDocument(url: documentURL) else {
+                throw PDFError.cannotOpenDocument(documentURL)
+            }
+            let ranges: [Range<Int>] = [0..<splitPoint, splitPoint..<pageCount]
+            let parts = try await processor.split(document: doc, ranges: ranges)
+            let baseName = documentURL.deletingPathExtension().lastPathComponent
+            resultURLs = try parts.enumerated().map { i, part in
+                try docManager.writeToTemp(part, name: "\(baseName)_part\(i + 1)")
             }
         } catch {
-            self.error = error.localizedDescription
+            errorMessage = error.localizedDescription
         }
     }
 }

@@ -44,9 +44,9 @@ struct ContentView: View {
         case .export(let url):
             ExportView(url: url) { coordinator.dismiss() }
         case .merge:
-            Text("Merge — coming in v0.4")
-        case .split:
-            Text("Split — coming in v0.4")
+            MergeView(processor: env.pdfProcessor, docManager: env.documentManager)
+        case .split(let url):
+            SplitView(documentURL: url, processor: env.pdfProcessor, docManager: env.documentManager)
         }
     }
 }

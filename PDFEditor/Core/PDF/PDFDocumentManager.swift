@@ -34,6 +34,22 @@ final class PDFDocumentManager {
         return outputURL
     }
 
+    // Copies a security-scoped URL to temp and returns the local path.
+    // Use this when you need to keep the file accessible after the picker dismisses.
+    func copyToTemp(url: URL) throws -> URL {
+        let accessed = url.startAccessingSecurityScopedResource()
+        defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+
+        let destURL = tempDirectory.appendingPathComponent(url.lastPathComponent)
+        try? FileManager.default.removeItem(at: destURL)
+        try FileManager.default.copyItem(at: url, to: destURL)
+        return destURL
+    }
+
+    func pageCount(at url: URL) -> Int {
+        PDFDocument(url: url)?.pageCount ?? 0
+    }
+
     func clearTemp() {
         try? FileManager.default.removeItem(at: tempDirectory)
         try? FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)

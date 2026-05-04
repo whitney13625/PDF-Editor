@@ -107,7 +107,14 @@ struct ThumbnailGridView: View {
 
         ToolbarItemGroup(placement: .navigationBarTrailing) {
             Button("Merge") { coordinator.openMerge() }
-            Button("Split") { coordinator.openSplit() }
+            Button("Split") {
+                Task {
+                    if let doc = viewModel.currentDocument(),
+                       let url = try? env.documentManager.writeToTemp(doc, name: "split_source") {
+                        coordinator.openSplit(url: url)
+                    }
+                }
+            }
             Button {
                 Task {
                     if let doc = viewModel.currentDocument(),
