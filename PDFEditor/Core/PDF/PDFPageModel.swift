@@ -2,7 +2,7 @@ import UIKit
 
 struct PDFPageModel: Identifiable, Sendable {
     let id: UUID
-    var pageIndex: Int
+    var pageIndex: Int  // mutable so we can reindex after delete
     var rotation: Int          // 0, 90, 180, 270
     var thumbnail: UIImage?
 

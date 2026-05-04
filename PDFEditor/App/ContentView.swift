@@ -9,7 +9,12 @@ struct ContentView: View {
         NavigationStack {
             Group {
                 if let url = loadedDocumentURL {
-                    ThumbnailGridView(documentURL: url)
+                    ThumbnailGridView(
+                        documentURL: url,
+                        processor: env.pdfProcessor,
+                        docManager: env.documentManager,
+                        history: env.commandHistory
+                    )
                 } else {
                     EmptyStateView(
                         systemImage: "doc.fill",
@@ -19,9 +24,9 @@ struct ContentView: View {
                     ) {
                         coordinator.openDocumentPicker()
                     }
+                    .navigationTitle("PDF Editor")
                 }
             }
-            .navigationTitle("PDF Editor")
         }
         .sheet(item: $coordinator.activeSheet) { sheet in
             sheetContent(for: sheet)
