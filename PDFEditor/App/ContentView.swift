@@ -43,6 +43,8 @@ struct ContentView: View {
             }
         case .export(let url):
             ExportView(url: url) { coordinator.dismiss() }
+        case .saveToFiles(let url):
+            SaveToFilesView(url: url) { coordinator.dismiss() }
         case .merge:
             MergeView(processor: env.pdfProcessor, docManager: env.documentManager)
         case .split(let url):

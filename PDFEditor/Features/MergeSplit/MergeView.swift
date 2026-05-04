@@ -42,7 +42,7 @@ struct MergeView: View {
                 }
             }
             .sheet(item: $viewModel.resultURL) { url in
-                ExportView(url: url) { viewModel.resultURL = nil }
+                ExportView(url: url, cleanup: [url]) { viewModel.resultURL = nil }
             }
         }
     }

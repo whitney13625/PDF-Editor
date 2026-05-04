@@ -10,6 +10,7 @@ struct PDFEditorApp: App {
             ContentView()
                 .environmentObject(coordinator)
                 .environmentObject(environment)
+                .task { environment.documentManager.clearTemp() }
         }
     }
 }

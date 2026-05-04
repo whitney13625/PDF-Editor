@@ -17,6 +17,7 @@
 		42AA147DC2B59375C308B582 /* MockPDFFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = F79F48EBF36AADC7A6B1E9B7 /* MockPDFFactory.swift */; };
 		442E761762DC190553C02783 /* PDFDocumentManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A19D10142BE3C1C8005BBDDB /* PDFDocumentManager.swift */; };
 		575546A0B381E4A1FFD33AFB /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5452B492F7B3251A3733E7AF /* AppEnvironment.swift */; };
+		5F50BFF3DD1B79D150282398 /* SaveToFilesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9FAAADC12F8BDB0F648434C /* SaveToFilesView.swift */; };
 		66BFCECFF8B802FA25D079B9 /* SplitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4D6737C400151788D48B52D /* SplitView.swift */; };
 		6BFA8C5FDC4C69F29CD2E363 /* PageOperationsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F17D96258CA0E901B08200B /* PageOperationsTests.swift */; };
 		6D2D2E694EC5D560D9A4C233 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = C94731BA694DE3516ACA1A27 /* Localizable.strings */; };
@@ -78,6 +79,7 @@
 		A5D069DC0D19926D82D99FA8 /* PDFPageModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFPageModel.swift; sourceTree = "<group>"; };
 		AB3EC6F11EA4C95772F7D86A /* MergeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MergeView.swift; sourceTree = "<group>"; };
 		B3524A9FA56888C03447EA99 /* PDFProcessingActor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFProcessingActor.swift; sourceTree = "<group>"; };
+		B9FAAADC12F8BDB0F648434C /* SaveToFilesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveToFilesView.swift; sourceTree = "<group>"; };
 		BE4EA63899A9E5049EF8BAF8 /* ThumbnailCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailCell.swift; sourceTree = "<group>"; };
 		C56B9285F11497F2F9C9CBA8 /* PDFDocumentManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFDocumentManagerTests.swift; sourceTree = "<group>"; };
 		C94731BA694DE3516ACA1A27 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; path = Localizable.strings; sourceTree = "<group>"; };
@@ -268,6 +270,7 @@
 			isa = PBXGroup;
 			children = (
 				11E977FE4698C7DD2017F090 /* ExportView.swift */,
+				B9FAAADC12F8BDB0F648434C /* SaveToFilesView.swift */,
 			);
 			path = Export;
 			sourceTree = "<group>";
@@ -435,6 +438,7 @@
 				1B6C453C6DC1EAA70AF7CE7C /* PDFEditorApp.swift in Sources */,
 				E4BC8925744FF8EE872EAF70 /* PDFPageModel.swift in Sources */,
 				1DD8540F1A632557FE08ED52 /* PDFProcessingActor.swift in Sources */,
+				5F50BFF3DD1B79D150282398 /* SaveToFilesView.swift in Sources */,
 				66BFCECFF8B802FA25D079B9 /* SplitView.swift in Sources */,
 				3A1A0019C5B6BB268EBCBD35 /* SplitViewModel.swift in Sources */,
 				01F05F3B30C7526745F738B6 /* ThumbnailCell.swift in Sources */,

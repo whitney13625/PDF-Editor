@@ -40,7 +40,7 @@ struct SplitView: View {
                 Text(viewModel.errorMessage ?? "")
             }
             .sheet(isPresented: $showShareSheet, onDismiss: { viewModel.resultURLs = [] }) {
-                ExportView(urls: viewModel.resultURLs) { showShareSheet = false }
+                ExportView(urls: viewModel.resultURLs, cleanup: viewModel.resultURLs) { showShareSheet = false }
             }
             .onChange(of: viewModel.resultURLs) { urls in
                 if !urls.isEmpty { showShareSheet = true }

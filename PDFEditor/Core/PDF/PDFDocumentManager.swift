@@ -11,7 +11,6 @@ final class PDFDocumentManager {
     }
 
     // Copies the security-scoped file into temp, then opens from there.
-    // This lets us release the security scope immediately without risking lazy page loads.
     func openDocument(url: URL) throws -> PDFDocument {
         let accessed = url.startAccessingSecurityScopedResource()
         defer { if accessed { url.stopAccessingSecurityScopedResource() } }
@@ -35,7 +34,6 @@ final class PDFDocumentManager {
     }
 
     // Copies a security-scoped URL to temp and returns the local path.
-    // Use this when you need to keep the file accessible after the picker dismisses.
     func copyToTemp(url: URL) throws -> URL {
         let accessed = url.startAccessingSecurityScopedResource()
         defer { if accessed { url.stopAccessingSecurityScopedResource() } }
@@ -50,8 +48,23 @@ final class PDFDocumentManager {
         PDFDocument(url: url)?.pageCount ?? 0
     }
 
+    // Deletes specific temp URLs (only files inside our temp directory are removed).
+    func deleteTemp(_ urls: [URL]) {
+        for url in urls {
+            guard url.path.hasPrefix(tempDirectory.path) else { continue }
+            try? FileManager.default.removeItem(at: url)
+        }
+    }
+
+    // Clears ALL files in the temp directory. Call on app launch to remove stale files.
     func clearTemp() {
-        try? FileManager.default.removeItem(at: tempDirectory)
-        try? FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
+        let contents = (try? FileManager.default.contentsOfDirectory(
+            at: tempDirectory, includingPropertiesForKeys: nil
+        )) ?? []
+        for url in contents { try? FileManager.default.removeItem(at: url) }
+    }
+
+    func isTempFile(_ url: URL) -> Bool {
+        url.path.hasPrefix(tempDirectory.path)
     }
 }

@@ -7,6 +7,7 @@ final class ThumbnailGridViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
 
+    private(set) var documentName: String = "document"
     private var document: PDFDocument?
     private let processor: PDFProcessingActor
     private let docManager: PDFDocumentManager
@@ -28,6 +29,7 @@ final class ThumbnailGridViewModel: ObservableObject {
         do {
             let doc = try docManager.openDocument(url: url)
             let thumbnails = await processor.renderThumbnails(for: doc, size: thumbnailSize)
+            documentName = url.deletingPathExtension().lastPathComponent
             document = doc
             pages = thumbnails
         } catch {

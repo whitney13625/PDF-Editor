@@ -110,22 +110,53 @@ struct ThumbnailGridView: View {
             Button("Split") {
                 Task {
                     if let doc = viewModel.currentDocument(),
-                       let url = try? env.documentManager.writeToTemp(doc, name: "split_source") {
+                       let url = try? env.documentManager.writeToTemp(
+                           doc, name: "\(viewModel.documentName)_split_source"
+                       ) {
                         coordinator.openSplit(url: url)
                     }
                 }
             }
-            Button {
-                Task {
-                    if let doc = viewModel.currentDocument(),
-                       let url = try? env.documentManager.writeToTemp(doc) {
-                        coordinator.openExport(url: url)
-                    }
-                }
-            } label: {
-                Image(systemName: "square.and.arrow.up")
-            }
+            exportMenu
         }
+    }
+}
+
+// MARK: - Export helpers
+
+extension ThumbnailGridView {
+    private var exportMenu: some View {
+        Menu {
+            Button {
+                Task { await shareDocument() }
+            } label: {
+                Label("Share…", systemImage: "square.and.arrow.up")
+            }
+
+            Button {
+                Task { await saveToFiles() }
+            } label: {
+                Label("Save to Files…", systemImage: "folder")
+            }
+        } label: {
+            Image(systemName: "square.and.arrow.up")
+        }
+    }
+
+    private func shareDocument() async {
+        guard let doc = viewModel.currentDocument(),
+              let url = try? env.documentManager.writeToTemp(
+                  doc, name: "\(viewModel.documentName)_edited"
+              ) else { return }
+        coordinator.openExport(url: url)
+    }
+
+    private func saveToFiles() async {
+        guard let doc = viewModel.currentDocument(),
+              let url = try? env.documentManager.writeToTemp(
+                  doc, name: "\(viewModel.documentName)_edited"
+              ) else { return }
+        coordinator.openSaveToFiles(url: url)
     }
 }
 
